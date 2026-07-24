@@ -6,12 +6,19 @@ function App() {
     date: '',
     description: '',
     account:  '',
+    category_name: '',
     items: [{ category_id: null, amount: '', notes: ''}]
   });
+  const [categories, setCategories] = useState([])
   useEffect(() => {
     fetch("http://127.0.0.1:8000/transactions")
       .then((response) => response.json())
       .then((data) => setTransactions(data))
+
+    fetch("http://127.0.0.1:8000/categories")
+    .then((response) => response.json())
+    .then((data) => setCategories(data)
+    )
   }, []);
 
   function handleFieldChange(field, value) {
@@ -26,29 +33,40 @@ function App() {
   function handleSubmit() {
     fetch("http://127.0.0.1:8000/transactions", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        date: newTransaction.date,
-        description: newTransaction.description,
-        account: newTransaction.account,
-        items: [
-          {
-            category_id: newTransaction.items[0].category_id,
-            amount: parseFloat(newTransaction.items[0].amount),
-            notes: newTransaction.items[0].notes,
-          },
-        ],
-      }),
+      headers: { "Content-Type": "application/json"},
+      body: JSON.stringify({ name: newTransaction.category_name})
+    })
+    .then((response) => response.json())
+    .then((category) => {
+      return fetch("http://127.0.0.1:8000/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json"},
+        body: JSON.stringify({
+          date: newTransaction.date,
+          description: newTransaction.description,
+          account: newTransaction.account,
+          items: [
+            {
+              category_id: category.id,
+              amount: parseFloat(newTransaction.items[0].amount),
+              notes: newTransaction.items[0].notes,
+            },
+          ],
+        }),
+      });
     })
     .then((response) => response.json())
     .then((data) => {
       setTransactions([data, ...transactions]);
+      // Add the new category to the list if it's not already there
+      setCategories((prev) => 
+        prev.find((c) => c.name === newTransaction.category_name) ? prev : [...prev, { name: newTransaction.category_name }]
+      )
       setNewTransaction({
         date: '',
         description: '',
         account: '',
+        category_name: '',
         items: [{ category_id: null, amount: '', notes: ''}]
       });
     });
@@ -82,6 +100,18 @@ function App() {
           value={newTransaction.account}
           onChange={(e) => handleFieldChange('account', e.target.value)}
           placeholder="Account (e.g. TD Checking)" />
+        <input
+          type="text"
+          value={newTransaction.category_name}
+          onChange={(e) => handleFieldChange('category_name', e.target.value)}
+          placeholder="Category (e.g. Groceries)"
+          list="categories"
+        />
+        <datalist id="categories">
+          {categories.map((category) => (
+            <option key={category.id} value={category.name} />
+          ))}
+        </datalist>
         <input
           type="number"
           value={newTransaction.items[0].amount}
