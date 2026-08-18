@@ -31,10 +31,14 @@ function App() {
   }
 
   function handleSubmit() {
-    fetch("http://127.0.0.1:8000/transactions", {
+    if (!newTransaction.date || !newTransaction.description.trim() || !newTransaction.items[0].amount) {
+    alert("Please fill in date, description, and amount")
+    return
+  }
+    fetch("http://127.0.0.1:8000/categories/upsert", {
       method: "POST",
       headers: { "Content-Type": "application/json"},
-      body: JSON.stringify({ name: newTransaction.category_name})
+      body: JSON.stringify({ name: newTransaction.category_name || "Uncategorized" }),
     })
     .then((response) => response.json())
     .then((category) => {
